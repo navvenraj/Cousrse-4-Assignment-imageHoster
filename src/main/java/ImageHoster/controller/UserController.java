@@ -10,9 +10,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @Controller
@@ -56,13 +59,14 @@ public class UserController {
     //If user with entered username and password exists in the database, add the logged in user in the Http Session and direct to user homepage displaying all the images in the application
     //If user with entered username and password does not exist in the database, redirect to the same login page
     @RequestMapping(value = "users/login", method = RequestMethod.POST)
-    public String loginUser(User user, HttpSession session) {
-        User existingUser = userService.login(user);
-        if (existingUser != null) {
-            session.setAttribute("loggeduser", existingUser);
-            return "redirect:/images";
-        } else {
+    public String registerUser(User user, RedirectAttributes redirectAttrs) {
+        if(isPasswordPatternMatch(user.getPassword())) {
+            userService.registerUser(user);
             return "users/login";
+        } else {
+            String error = "Password must contain atleast 1 alphabet, 1 number & 1 special character";
+            redirectAttrs.addAttribute("passwordTypeError", error).addFlashAttribute("passwordTypeError", error);
+            return "redirect:/users/registration";
         }
     }
 
@@ -78,5 +82,11 @@ public class UserController {
         List<Image> images = imageService.getAllImages();
         model.addAttribute("images", images);
         return "index";
+    }
+
+    private Boolean isPasswordPatternMatch(String password){
+        Pattern pattern= Pattern.compile("(?=.*[a-z])(?=.*[0-9])(?=.*[^a-z0-9])", Pattern.CASE_INSENSITIVE);
+        Matcher match = pattern.matcher(password);
+        return match.find();
     }
 }
